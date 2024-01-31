@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <!-- 禁用缓存 -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+
+    <!-- 引用three.js -->
+    <script src="js/three.min.js"></script>
+    <!-- 引用OrbitControls -->
+    <script src="js/OrbitControls.js"></script>
+
+    <title>簡單網頁</title>
+    <style>
+        /* 這裡可以添加 CSS 樣式 */
+        body {
+            font-family: Arial, sans-serif;
+        }
+    </style>
+</head>
+<body>
+    <h1>Hello, World!</h1>
+
+    <p>這是一個使用 HTML 和 JavaScript 建構的簡單網頁。</p>
+
+    <input type="file" id="fileInput" style="display:none;" multiple></input>
+    <button onclick="openFile()">打開文件</button>
+    <!-- <script type='text/javascript' src="onload.js"></script> -->
+    <script src="openFile.js"></script>
+</body>
+</html>
