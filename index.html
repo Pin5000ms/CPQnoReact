@@ -14,22 +14,53 @@
     <!-- 引用OrbitControls -->
     <script src="js/OrbitControls.js"></script>
 
+    <script type="module" src="./openFile.js"></script>
+    <script type="module" src="./main.js"></script>
+
     <title>簡單網頁</title>
     <style>
         /* 這裡可以添加 CSS 樣式 */
         body {
             font-family: Arial, sans-serif;
         }
+
+        #treeViewDiv {
+            width: 300px;
+            height: 300px; /* 设置高度，仅作示例 */
+            float: left;
+            box-sizing: border-box;
+            border: 1px solid #ccc; /* 边框样式，仅作示例 */
+        }
+
+        #modelViewDiv {
+            width: 500px;
+            height: 300px; /* 设置高度，仅作示例 */
+            float: left;
+            box-sizing: border-box;
+            border: 1px solid #ccc; /* 边框样式，仅作示例 */
+        }
     </style>
 </head>
 <body>
     <h1>Hello, World!</h1>
 
-    <p>這是一個使用 HTML 和 JavaScript 建構的簡單網頁。</p>
+    <div>
+        <p>這是一個使用 HTML 和 JavaScript 建構的簡單網頁。</p>
 
-    <input type="file" id="fileInput" style="display:none;" multiple></input>
-    <button onclick="openFile()">打開文件</button>
+        <input type="file" id="fileInput" style="display:none;" multiple></input>
+        <button id="executeButton">打開文件</button>
+    </div>
+    
+
+
+    <div id="treeViewDiv">
+    </div>
+
+
+    <div id="modelViewDiv">
+    </div>
+
     <!-- <script type='text/javascript' src="onload.js"></script> -->
-    <script src="openFile.js"></script>
+
 </body>
 </html>
