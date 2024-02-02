@@ -17,7 +17,7 @@
     <script type="module" src="./openFile.js"></script>
     <script type="module" src="./main.js"></script>
 
-    <title>簡單網頁</title>
+    <title>3D Viewer</title>
     <style>
         /* 這裡可以添加 CSS 樣式 */
         body {
@@ -25,42 +25,120 @@
         }
 
         #treeViewDiv {
-            width: 300px;
-            height: 300px; /* 设置高度，仅作示例 */
+            width: 400px;
+            height: 500px; /* 设置高度，仅作示例 */
             float: left;
             box-sizing: border-box;
             border: 1px solid #ccc; /* 边框样式，仅作示例 */
         }
 
         #modelViewDiv {
-            width: 500px;
-            height: 300px; /* 设置高度，仅作示例 */
+            width: 700px;
+            height: 500px; /* 设置高度，仅作示例 */
             float: left;
             box-sizing: border-box;
             border: 1px solid #ccc; /* 边框样式，仅作示例 */
         }
+
+        .tree{
+            --spacing : 1.5rem;
+            --radius  : 10px;
+        }
+
+        .tree li{
+            display      : block;
+            position     : relative;
+            padding-left : calc(2 * var(--spacing) - var(--radius) - 2px);
+        }
+
+        .tree ul{
+            margin-left  : calc(var(--radius) - var(--spacing));
+            padding-left : 0;
+        }
+
+        .tree ul li{
+            border-left : 2px solid #ddd;
+        }
+
+
+
+        .tree ul li:last-child{
+            border-color : transparent;
+        }
+
+        .tree ul li::before{
+            content      : '';
+            display      : block;
+            position     : absolute;
+            top          : calc(var(--spacing) / -2);
+            left         : -2px;
+            width        : calc(var(--spacing) + 2px);
+            height       : calc(var(--spacing) + 1px);
+            border       : solid #ddd;
+            border-width : 0 0 2px 2px;
+        }
+
+        .tree summary{
+            display : block;
+            cursor  : pointer;
+        }
+
+        .tree summary::marker,
+        .tree summary::-webkit-details-marker{
+            display : none;
+        }
+
+        .tree summary:focus{
+            outline : none;
+        }
+
+        .tree summary:focus-visible{
+            outline : 1px dotted #000;
+        }
+
+        .tree li::after,
+        .tree summary::before{
+            content       : '';
+            display       : block;
+            position      : absolute;
+            top           : calc(var(--spacing) / 2 - var(--radius));
+            left          : calc(var(--spacing) - var(--radius) - 1px);
+            width         : calc(2 * var(--radius));
+            height        : calc(2 * var(--radius));
+            border-radius : 50%;
+            background    : #ddd;
+        }
+
+        .tree summary::before{
+            z-index    : 1;
+            background : #696 url('expand-collapse.svg') 0 0;
+        }
+
+        .tree details[open] > summary::before{
+            background-position : calc(-2 * var(--radius)) 0;
+        }
+
+        
     </style>
 </head>
 <body>
-    <h1>Hello, World!</h1>
+    <h1>3D Viewer</h1>
 
     <div>
-        <p>這是一個使用 HTML 和 JavaScript 建構的簡單網頁。</p>
-
         <input type="file" id="fileInput" style="display:none;" multiple></input>
         <button id="executeButton">打開文件</button>
     </div>
     
 
-
     <div id="treeViewDiv">
+        
     </div>
-
 
     <div id="modelViewDiv">
     </div>
 
-    <!-- <script type='text/javascript' src="onload.js"></script> -->
+
+    <!-- <script type='text/javascript' src="testworker.js"></script> -->
 
 </body>
 </html>

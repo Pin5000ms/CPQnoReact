@@ -1,8 +1,8 @@
-const width = 500;
-const height = 300;
+const width = 700;
+const height = 500;
 var scene, renderer, camera, group;
 
-export function LoadToScene(jsonData) {
+export function Load(jsonData) {
 
     var modelViewDiv = document.getElementById('modelViewDiv');
     // Remove the existing renderer DOM element if it exists
