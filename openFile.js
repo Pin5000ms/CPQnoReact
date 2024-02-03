@@ -1,4 +1,4 @@
-import { Load } from "./loadtoscene.js";
+import { Load } from "./viewer.js";
 import { TestImportNode } from "./importnode.js";
 
 
