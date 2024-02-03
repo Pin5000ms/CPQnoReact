@@ -1,3 +1,6 @@
+import * as THREE from './js/three.module.js'
+import { OrbitControls } from './js/OrbitControls.js'
+
 const width = 700;
 const height = 500;
 var scene, renderer, camera, group;
@@ -27,7 +30,7 @@ export function Load(jsonData) {
     renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(width, height);
     renderer.setClearColor(0x000000); // background color
-    var modelViewDiv = document.getElementById('modelViewDiv');
+
     if(modelViewDiv)
         modelViewDiv.appendChild(renderer.domElement);
 
@@ -61,7 +64,7 @@ export function Load(jsonData) {
     camera.lookAt(center);
 
     // Add OrbitControls
-    const controls = new THREE.OrbitControls(camera, renderer.domElement);
+    const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true; // Enable smooth camera movement
     controls.dampingFactor = 0.05; // Set the damping factor for the controls
     controls.enableZoom = true;
