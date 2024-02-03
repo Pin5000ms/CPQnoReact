@@ -1,4 +1,4 @@
-import { Load } from "./viewer.js";
+import { LoadfromJsonData } from "./viewer.js";
 import { TestImportNode } from "./importnode.js";
 
 
@@ -45,7 +45,7 @@ function byteArrayToJsonData(byteArray) {
     var worker = new Worker ('./loaders/occt-import-js-worker.js');
     worker.onmessage = function (ev) {
         //console.log (ev.data);
-        Load(ev.data)
+        //LoadfromJsonData(ev.data)
         TestImportNode(ev.data)
     }
     worker.postMessage ({

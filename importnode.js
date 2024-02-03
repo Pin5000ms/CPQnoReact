@@ -2,7 +2,11 @@ import { Model } from './model/model.js'
 import { Node } from './model/node.js'
 import { ConvertThreeGeometryToMesh } from './threejs/threeutils.js';
 import { ColorToMaterialConverter } from './importerutils.js';
-import { RGBColorFromFloatComponents} from './model/color.js'
+import { RGBColorFromFloatComponents } from './model/color.js'
+
+import { ConvertModelToThreeObject, ModelToThreeConversionOutput, ModelToThreeConversionParams } from './threejs/threeconverter.js';
+import { LoadfromObject3D, UpdateMeshesSelection } from './viewer.js';
+
 
 let model = new Model();
 
@@ -17,13 +21,39 @@ export function TestImportNode(jsonData){
     var treeViewDiv = document.getElementById('treeViewDiv');
     treeViewDiv.innerHTML = '';
     CreateTreeView(treeViewDiv, rootNode, true);
+
+
+    let params = new ModelToThreeConversionParams ();
+    //params.forceMediumpForMaterials = this.hasHighpDriverIssue;
+    let output = new ModelToThreeConversionOutput ();
+    ConvertModelToThreeObject (model, params, output,
+    //callbacks
+    {
+        onTextureLoaded : () => {
+            //callbacks.onTextureLoaded ();
+        },
+        onModelLoaded : (threeObject) => {
+            LoadfromObject3D(threeObject);
+            //this.defaultMaterials = output.defaultMaterials;
+            //this.objectUrls = output.objectUrls;
+            // if (importResult.upVector === Direction.X) {
+            //     let rotation = new THREE.Quaternion ().setFromAxisAngle (new THREE.Vector3 (0.0, 0.0, 1.0), Math.PI / 2.0);
+            //     threeObject.quaternion.multiply (rotation);
+            // } else if (importResult.upVector === Direction.Z) {
+            //     let rotation = new THREE.Quaternion ().setFromAxisAngle (new THREE.Vector3 (1.0, 0.0, 0.0), -Math.PI / 2.0);
+            //     threeObject.quaternion.multiply (rotation);
+            // }
+            //callbacks.onModelFinished (importResult, threeObject);
+            //this.inProgress = false;
+        }
+    });
 }
 
 
 //Create TreeView Recursively
 function CreateTreeView(parent_Element, rootNode, isRoot)
 {
-    //ul => li or li + details + summary
+    //ul 下層可能是 li 或 li + details + summary
     var ulElement = document.createElement('ul');
     if(isRoot){
         ulElement.className = 'tree';
@@ -36,6 +66,15 @@ function CreateTreeView(parent_Element, rootNode, isRoot)
         //ul => li
         if(childNode.IsMeshNode()){
             liElement.textContent = childNode.name;
+
+            // var buttonElement = document.createElement('button');
+            // liElement.appendChild(buttonElement);
+
+            liElement.addEventListener('click', function() {
+                console.log(childNode.meshIndices[0]);
+                UpdateMeshesSelection(childNode.meshIndices[0]);
+            });
+            
             ulElement.appendChild(liElement);
             CreateTreeView(liElement, childNode);
         }
@@ -51,15 +90,28 @@ function CreateTreeView(parent_Element, rootNode, isRoot)
         }
     }
     if(!rootNode.IsMeshNode()){
-        for(let mesh of rootNode.meshIndices){
+        for(let meshid of rootNode.meshIndices){
             var liElement_mesh = document.createElement('li');
             liElement_mesh.textContent = rootNode.name;
+
+            // var buttonElement_mesh = document.createElement('button');
+            // liElement_mesh.appendChild(buttonElement_mesh);
+
+            
+            liElement_mesh.addEventListener('click', function() {
+                console.log(meshid);
+                UpdateMeshesSelection(meshid);
+            });
+
             ulElement.appendChild(liElement_mesh);
         }
     }
     
     parent_Element.appendChild(ulElement);
 }
+
+
+
 
 
 function ImportNode (resultContent, occtNode, parentNode, colorToMaterial)
