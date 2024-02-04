@@ -1,5 +1,5 @@
-import * as THREE from './js/three.module.js'
-import { OrbitControls } from './js/OrbitControls.js'
+import * as THREE from './jsm/three.module.js'
+import { OrbitControls } from './jsm/OrbitControls.js'
 import { RGBColor} from './model/color.js'
 import { CreateHighlightMaterials } from './threejs/threeutils.js';
 
@@ -94,6 +94,7 @@ export function LoadfromJsonData(jsonData) {
 export function LoadfromObject3D(_mainObject) {
     mainObject = _mainObject;
     var modelViewDiv = document.getElementById('modelViewDiv');
+
     // Remove the existing renderer DOM element if it exists
     const existingRendererElement = document.querySelector('canvas');
     if (existingRendererElement) {
@@ -222,7 +223,7 @@ function EnumerateMeshesAndLines (enumerator)
     });
 }
 
-
+//以下是stp-web-viewer的寫法
 
 function LoadGeometry(targetObject, jsonData) {
     prepareGroup(targetObject, jsonData);

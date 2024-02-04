@@ -6,7 +6,7 @@ import { MeshInstance, MeshInstanceId } from '../model/meshinstance.js';
 import { IsEmptyMesh } from '../model/meshutils.js';
 import { ConvertColorToThreeColor, GetShadingType, ShadingType } from './threeutils.js';
 
-import * as THREE from '.././js/three.module.js'
+import * as THREE from '../jsm/three.module.js'
 
 export const MaterialGeometryType =
 {
@@ -490,7 +490,7 @@ export function ConvertModelToThreeObject (model, conversionParams, conversionOu
 		}
 	}
 
-	function ConvertNodeHierarchy (threeRootNode, model, materialHandler, stateHandler)
+	function ConvertNodeHierarchy (model, threeRootNode, materialHandler, stateHandler)
 	{
 		let nodeTree = new ThreeNodeTree (model, threeRootNode);
 		let threeNodeItems = nodeTree.GetNodeItems ();
@@ -513,5 +513,5 @@ export function ConvertModelToThreeObject (model, conversionParams, conversionOu
 	let stateHandler = new ThreeConversionStateHandler (callbacks);
 	let materialHandler = new ThreeMaterialHandler (model, stateHandler, conversionParams, conversionOutput);
 	let threeObject = new THREE.Object3D ();
-	ConvertNodeHierarchy (threeObject, model, materialHandler, stateHandler);
+	ConvertNodeHierarchy (model, threeObject, materialHandler, stateHandler);
 }

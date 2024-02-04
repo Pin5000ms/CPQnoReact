@@ -1,6 +1,6 @@
-import { IsLower } from './geometry/geometry.js';
-import { PhongMaterial } from './model/material.js';
-import { RGBColor, IntegerToHexString } from './model/color.js';
+import { IsLower } from '../geometry/geometry.js';
+import { PhongMaterial } from '../model/material.js';
+import { RGBColor, IntegerToHexString } from '../model/color.js';
 
 export function NameFromLine (line, startIndex, commentChar)
 {

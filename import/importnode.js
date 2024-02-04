@@ -1,21 +1,22 @@
-import { Model } from './model/model.js'
-import { Node } from './model/node.js'
-import { ConvertThreeGeometryToMesh } from './threejs/threeutils.js';
+import { Model } from '../model/model.js'
+import { Node } from '../model/node.js'
+import { ConvertThreeGeometryToMesh } from '../threejs/threeutils.js';
 import { ColorToMaterialConverter } from './importerutils.js';
-import { RGBColorFromFloatComponents } from './model/color.js'
+import { RGBColorFromFloatComponents } from '../model/color.js'
 
-import { ConvertModelToThreeObject, ModelToThreeConversionOutput, ModelToThreeConversionParams } from './threejs/threeconverter.js';
-import { LoadfromObject3D, UpdateMeshesSelection } from './viewer.js';
+import { ConvertModelToThreeObject, ModelToThreeConversionOutput, ModelToThreeConversionParams } from '../threejs/threeconverter.js';
+import { LoadfromObject3D, UpdateMeshesSelection } from '../viewer.js';
 
 
 let model = new Model();
 
-export function TestImportNode(jsonData){
+export function ImportJsonData(jsonData){
     model = new Model();
     let colorToMaterial = new ColorToMaterialConverter (model);
     let rootNode = model.GetRootNode ();
     ImportNode (jsonData, jsonData.root, rootNode, colorToMaterial);
-    console.log(rootNode);
+
+    //console.log(rootNode);
 
     
     var treeViewDiv = document.getElementById('treeViewDiv');

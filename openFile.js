@@ -1,5 +1,4 @@
-import { LoadfromJsonData } from "./viewer.js";
-import { TestImportNode } from "./importnode.js";
+import { ImportJsonData } from "./import/importnode.js";
 
 
 export function openFile() {
@@ -46,7 +45,7 @@ function byteArrayToJsonData(byteArray) {
     worker.onmessage = function (ev) {
         //console.log (ev.data);
         //LoadfromJsonData(ev.data)
-        TestImportNode(ev.data)
+        ImportJsonData(ev.data)
     }
     worker.postMessage ({
         format: 'step',
