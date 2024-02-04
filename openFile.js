@@ -1,4 +1,4 @@
-import { ImportJsonData } from "./import/importnode.js";
+import { ImportJsonData } from "./import/importer.js";
 
 
 export function openFile() {
@@ -26,7 +26,7 @@ export function openFile() {
                 // 將 ArrayBuffer 轉換為 byte array
                 var byteArray = new Uint8Array(fileContentArrayBuffer);
 
-                // 將 byte array 傳遞給 JavaScript 函數
+                // 將 byte array 傳遞給 occt-import-js-worker
                 byteArrayToJsonData(byteArray);
             };
             

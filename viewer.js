@@ -93,35 +93,8 @@ export function LoadfromJsonData(jsonData) {
 
 export function LoadfromObject3D(_mainObject) {
     mainObject = _mainObject;
-    var modelViewDiv = document.getElementById('modelViewDiv');
 
-    // Remove the existing renderer DOM element if it exists
-    const existingRendererElement = document.querySelector('canvas');
-    if (existingRendererElement) {
-        modelViewDiv.removeChild(existingRendererElement);
-    }
-
-    // Initialize Three.js scene, camera, and renderer
-    scene = new THREE.Scene();
-    // const directionalLight = new THREE.DirectionalLight (0x888888);
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 1); // White light with intensity 1
-    directionalLight.position.set(1, 1, 1); // Set the position of the light
-    scene.add(directionalLight);
-
-    const ambientLight = new THREE.AmbientLight(0x444444);
-    scene.add(ambientLight);
-
-    const backgroundLight = new THREE.HemisphereLight(0xffffff, 0x444444, 1); // Sky color, ground color, intensity
-    scene.add(backgroundLight);
-
-    renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setSize(width, height);
-    renderer.setClearColor(0x000000); // background color
-
-    if(modelViewDiv)
-        modelViewDiv.appendChild(renderer.domElement);
-
-    scene.add(mainObject);
+    BuildScene();
 
     // Calculate the bounding box of the loaded geometry
     const bbox = new THREE.Box3().setFromObject(mainObject);
@@ -166,29 +139,63 @@ export function LoadfromObject3D(_mainObject) {
     animate();
 }
 
+function BuildScene(){
+    var modelViewDiv = document.getElementById('modelViewDiv');
 
-export function UpdateMeshesSelection (selectedMeshId)
-{
-    SetMeshesHighlight (new RGBColor (142, 201, 240), selectedMeshId);
+    // Remove the existing renderer DOM element if it exists
+    const existingRendererElement = document.querySelector('canvas');
+    if (existingRendererElement) {
+        modelViewDiv.removeChild(existingRendererElement);
+    }
+
+    // Initialize Three.js scene, camera, and renderer
+    scene = new THREE.Scene();
+    // const directionalLight = new THREE.DirectionalLight (0x888888);
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 1); // White light with intensity 1
+    directionalLight.position.set(1, 1, 1); // Set the position of the light
+    scene.add(directionalLight);
+
+    //var axesHelper = new THREE.AxesHelper( 100 );
+    //scene.add( axesHelper );
+
+    const ambientLight = new THREE.AmbientLight(0x444444);
+    scene.add(ambientLight);
+
+    const backgroundLight = new THREE.HemisphereLight(0xffffff, 0x444444, 1); // Sky color, ground color, intensity
+    scene.add(backgroundLight);
+
+    renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(width, height);
+    renderer.setClearColor(0x000000); // background color
+
+    if(modelViewDiv)
+        modelViewDiv.appendChild(renderer.domElement);
+
+    scene.add(mainObject);
 }
 
-function isHighlighted(meshUserData, selectedMeshId){
-    console.log(meshUserData.originalMeshInstance.id);
-    //本來是meshUserData.originalMeshInstance.id.IsEqual (selectedMeshId),要nodeId和meshIndex都相等
-    //selectedMeshId 本來應該是一個 MeshInstanceId (class)
-    if (selectedMeshId !== null && meshUserData.originalMeshInstance.id.meshIndex === selectedMeshId) //爆改
+
+export function UpdateMeshesSelection (meshInstanceId)
+{
+    let highlightColor = new RGBColor (142, 201, 240);
+    SetMeshesHighlight (highlightColor, meshInstanceId);
+}
+
+function isHighlighted(meshUserData, selectedMeshInstanceId){
+    //console.log(meshUserData.originalMeshInstance.id);
+    if (selectedMeshInstanceId !== null && meshUserData.originalMeshInstance.id.IsEqual (selectedMeshInstanceId))
     {
         return true;
     }
     return false;
 }
 
-function SetMeshesHighlight (highlightColor, selectedMeshId)
+function SetMeshesHighlight (highlightColor, selectedMeshInstanceId)
 {
     //let withPolygonOffset = this.mainModel.HasLinesOrEdges ();
     let withPolygonOffset = true;
     EnumerateMeshesAndLines ((mesh) => {
-        let highlighted = isHighlighted (mesh.userData, selectedMeshId);
+        let highlighted = isHighlighted (mesh.userData, selectedMeshInstanceId);
         if (highlighted) 
         {
             if (mesh.userData.threeMaterials === null) {

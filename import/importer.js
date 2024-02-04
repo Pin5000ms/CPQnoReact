@@ -3,6 +3,7 @@ import { Node } from '../model/node.js'
 import { ConvertThreeGeometryToMesh } from '../threejs/threeutils.js';
 import { ColorToMaterialConverter } from './importerutils.js';
 import { RGBColorFromFloatComponents } from '../model/color.js'
+import { MeshInstanceId } from '../model/meshinstance.js';
 
 import { ConvertModelToThreeObject, ModelToThreeConversionOutput, ModelToThreeConversionParams } from '../threejs/threeconverter.js';
 import { LoadfromObject3D, UpdateMeshesSelection } from '../viewer.js';
@@ -16,7 +17,7 @@ export function ImportJsonData(jsonData){
     let rootNode = model.GetRootNode ();
     ImportNode (jsonData, jsonData.root, rootNode, colorToMaterial);
 
-    //console.log(rootNode);
+    console.log(rootNode);
 
     
     var treeViewDiv = document.getElementById('treeViewDiv');
@@ -54,14 +55,14 @@ export function ImportJsonData(jsonData){
 //Create TreeView Recursively
 function CreateTreeView(parent_Element, rootNode, isRoot)
 {
-    //ul 下層可能是 li 或 li + details + summary
+    
     var ulElement = document.createElement('ul');
     if(isRoot){
         ulElement.className = 'tree';
         ulElement.style = "margin-left : -50px"
     }
-    
 
+    //ul 下層可能是 li 或 li + details + summary
     for(let childNode of rootNode.childNodes){
         var liElement = document.createElement('li');
         //ul => li
@@ -73,13 +74,16 @@ function CreateTreeView(parent_Element, rootNode, isRoot)
 
             liElement.addEventListener('click', function() {
                 console.log(childNode.meshIndices[0]);
-                UpdateMeshesSelection(childNode.meshIndices[0]);
+                UpdateMeshesSelection(new MeshInstanceId (childNode.GetId (), childNode.meshIndices[0]));
             });
+
+            // console.log(childNode.GetId ());
+            // console.log(childNode.meshIndices[0])
             
             ulElement.appendChild(liElement);
             CreateTreeView(liElement, childNode);
         }
-        //ul => li + details + summary
+        //ul => li + details + summary 不用設定liElement.textContent
         else{
             var detailsElement = document.createElement('details');
             var summaryElement = document.createElement('summary');
@@ -101,8 +105,11 @@ function CreateTreeView(parent_Element, rootNode, isRoot)
             
             liElement_mesh.addEventListener('click', function() {
                 console.log(meshid);
-                UpdateMeshesSelection(meshid);
+                UpdateMeshesSelection(new MeshInstanceId (rootNode.GetId (), meshid));
             });
+
+            // console.log(rootNode.GetId ());
+            // console.log(meshid)
 
             ulElement.appendChild(liElement_mesh);
         }
@@ -113,8 +120,10 @@ function CreateTreeView(parent_Element, rootNode, isRoot)
 
 
 
-
-
+// model = new Model();
+// let colorToMaterial = new ColorToMaterialConverter (model);
+// let rootNode = model.GetRootNode ();
+// ImportNode (jsonData, jsonData.root, rootNode, colorToMaterial);
 function ImportNode (resultContent, occtNode, parentNode, colorToMaterial)
 {
     //console.log(occtNode.meshes);
