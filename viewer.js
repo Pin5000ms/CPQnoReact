@@ -7,6 +7,12 @@ const width = 700;
 const height = 500;
 var scene, renderer, camera, group;
 let mainObject = new THREE.Object3D();
+let edgeObject = new THREE.Object3D();
+
+// 创建射线投射器
+var raycaster = new THREE.Raycaster();
+var mouse = new THREE.Vector2();
+var modelViewDiv = document.getElementById('modelViewDiv');
 
 export function LoadfromJsonData(jsonData) {
 
@@ -94,7 +100,14 @@ export function LoadfromJsonData(jsonData) {
 export function LoadfromObject3D(_mainObject) {
     mainObject = _mainObject;
 
+    
+
     BuildScene();
+
+
+    GenerateEdges();
+    
+
 
     // Calculate the bounding box of the loaded geometry
     const bbox = new THREE.Box3().setFromObject(mainObject);
@@ -130,6 +143,8 @@ export function LoadfromObject3D(_mainObject) {
     controls.enablePan = true;
     controls.screenSpacePanning = false; // Disable panning in screen space
 
+    
+
     // Render the scene
     function animate() {
         requestAnimationFrame(animate);
@@ -140,7 +155,6 @@ export function LoadfromObject3D(_mainObject) {
 }
 
 function BuildScene(){
-    var modelViewDiv = document.getElementById('modelViewDiv');
 
     // Remove the existing renderer DOM element if it exists
     const existingRendererElement = document.querySelector('canvas');
@@ -168,11 +182,133 @@ function BuildScene(){
     renderer.setSize(width, height);
     renderer.setClearColor(0x000000); // background color
 
+    
+
     if(modelViewDiv)
+    {
         modelViewDiv.appendChild(renderer.domElement);
+    }
+        
 
     scene.add(mainObject);
 }
+
+
+function GenerateEdges(){
+    // 监听鼠标点击事件
+    modelViewDiv.addEventListener('click', onMouseClick, false);
+    //Add Edge
+    EnumerateMeshes ((mesh) => {
+        let edges = new THREE.EdgesGeometry (mesh.geometry, 5);
+        let line = new THREE.LineSegments (edges, new THREE.LineBasicMaterial ({
+            color: 0x000000
+        }));
+
+        line.applyMatrix4 (mesh.matrixWorld);
+        line.userData = mesh.userData;
+        line.visible = mesh.visible;
+
+
+        let positions = line.geometry.attributes.position;
+        console.log(positions.count)
+
+
+        let positions2 = mesh.geometry.attributes.position;
+        console.log(positions2.count)
+
+        let points = [];
+        for (let i = 0; i < positions.count; i++) {
+            let vertex = new THREE.Vector3().fromBufferAttribute(positions, i);
+            if (isNaN(vertex.x) || isNaN(vertex.y) || isNaN(vertex.z)) {
+                console.log('Vector contains NaN values');
+            } else {
+                points.push(vertex);
+            }
+        }
+
+        //let threshold = 0.1; // 定义距离的阈值
+        //let result = isCircle(points, threshold);
+
+        CreateLine(positions, line.material);
+
+        // if (result.isCircle) {
+        //     CreateLine(positions, new THREE.LineBasicMaterial({ color: 0xFFFFFF }));
+        // } else {
+        //     CreateLine(positions, line.material);
+        // }
+
+        
+
+        
+    });
+    scene.add(edgeObject);
+    
+}
+
+function CreateLine(positions, material){
+    
+    // 假设 line 是要拆分的线段对象
+    let lineSegments = [];  
+
+    // 遍历属性缓冲区中的顶点位置
+    for (let i = 0; i < positions.count; i += 2) {
+        // 获取每个顶点的位置
+        let vertex1 = new THREE.Vector3().fromBufferAttribute(positions, i);
+        let vertex2 = new THREE.Vector3().fromBufferAttribute(positions, i + 1);
+
+        // 创建两个顶点组成的几何体
+        let geometry = new THREE.BufferGeometry();
+        geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array([
+            vertex1.x, vertex1.y, vertex1.z,
+            vertex2.x, vertex2.y, vertex2.z
+        ]), 3));
+
+        // 使用现有材质的副本创建新的材质
+        //let newMaterial = line.material.clone();
+
+        // 使用这两个顶点创建新的线段对象
+        let singleLine = new THREE.Line(geometry, material.clone());
+
+        // 将新的线段对象添加到数组中
+        lineSegments.push(singleLine);
+    }
+
+    // 将拆分后的线段对象添加到场景中
+    lineSegments.forEach(function(singleLine){
+        edgeObject.add(singleLine);
+    });
+}
+
+
+function isCircle(points, threshold) {
+    // 计算几何中心
+    let center = new THREE.Vector3();
+    for (let i = 0; i < points.length; i++) {
+        center.add(points[i]);
+    }
+    center.divideScalar(points.length);
+
+    // 计算每个点到几何中心的距离
+    let distances = [];
+    for (let i = 0; i < points.length; i++) {
+        let distance = points[i].distanceTo(center);
+        distances.push(distance);
+    }
+
+    // 判断距离是否相等
+    for (let i = 1; i < distances.length; i++) {
+        if (Math.abs(distances[i] - distances[0]) > threshold) {
+            return { isCircle: false, radius: null };
+        }
+    }
+
+    // 计算近似半径
+    let sum = distances.reduce((acc, cur) => acc + cur, 0);
+    let averageDistance = sum / distances.length;
+
+    return { isCircle: true, radius: averageDistance };
+}
+
 
 
 export function UpdateMeshesSelection (meshInstanceId)
@@ -229,6 +365,209 @@ function EnumerateMeshesAndLines (enumerator)
         }
     });
 }
+
+function EnumerateMeshes (enumerator)
+{
+    if (mainObject === null) {
+        return;
+    }
+    mainObject.traverse ((obj) => {
+        if (obj.isMesh) {
+            enumerator (obj);
+        }
+    });
+}
+
+function EnumerateLines (enumerator)
+{
+    if (mainObject === null) {
+        return;
+    }
+    mainObject.traverse ((obj) => {
+        if (obj.isLineSegments) {
+            enumerator (obj);
+        }
+    });
+}
+
+
+
+// 设置鼠标点击事件
+function onMouseClick(event) {
+
+    // 获取modelViewDiv元素相对于浏览器窗口的位置
+    var boundingRect = modelViewDiv.getBoundingClientRect();
+
+    // 计算鼠标点击位置相对于modelViewDiv元素的坐标
+    var mouseX = event.clientX - boundingRect.left;
+    var mouseY = event.clientY - boundingRect.top;
+
+    //console.log(mouseX)
+    //console.log(mouseY)
+
+    // 计算鼠标点击位置
+    mouse.x = ((mouseX) / width) * 2 - 1;
+    mouse.y = -((mouseY) / height) * 2 + 1;
+
+
+    let local_thres = computeThreshold();
+
+    // 通过相机和鼠标位置更新射线
+    raycaster.setFromCamera(mouse, camera);
+    raycaster.params.Line.threshold = local_thres;
+
+    // 计算物体与射线的相交情况
+    var intersects = raycaster.intersectObjects(edgeObject.children);
+
+
+    while(intersects.length > 1){
+        local_thres = local_thres/2;
+        raycaster.params.Line.threshold = local_thres;
+        intersects = raycaster.intersectObjects(edgeObject.children);
+    }
+
+
+    for (let i = 0; i < intersects.length; i++) {
+        let intersectedObject = intersects[i].object;
+
+        let l = calculateLineLength(intersectedObject);
+        let dynamicTextElement = document.getElementById('length');
+        dynamicTextElement.innerHTML = 'Length : ' + l.toString();
+        intersectedObject.material.color.set(0xff0000);
+
+
+        // 计算输入线段的法向量
+        // let positions = intersectedObject.geometry.attributes.position;
+        // let inputLineVertex1 = new THREE.Vector3(positions.getX(0), positions.getY(0), positions.getZ(0));
+        // let inputLineVertex2 = new THREE.Vector3(positions.getX(1), positions.getY(1), positions.getZ(1));
+        // let inputNormal = new THREE.Vector3().crossVectors(inputLineVertex2, inputLineVertex1);
+
+        // 遍历 edgeObject 中的每个线段
+        // for (let i = 0; i < edgeObject.children.length; i++) {
+        //     let line = edgeObject.children[i];
+
+        //     let positions = line.geometry.attributes.position;
+        //     let vertex1 = new THREE.Vector3(positions.getX(0), positions.getY(0), positions.getZ(0));
+        //     let vertex2 = new THREE.Vector3(positions.getX(1), positions.getY(1), positions.getZ(1));
+
+        //     // 计算当前线段的法向量
+        //     let normal = new THREE.Vector3().crossVectors(vertex2, vertex1);
+
+        //     // 计算两个法向量之间的夹角
+        //     let angle = inputNormal.angleTo(normal);
+
+        //     // 检查夹角是否小于阈值，如果是，则认为这两条线在同一个平面上
+        //     if (angle < 0.5) {
+
+        //         let points = [
+        //             inputLineVertex1,
+        //             inputLineVertex2,
+        //             vertex1,
+        //             vertex2
+        //         ];
+    
+        //         if (arePointsCoplanar(points)) {
+        //             line.material.color.set(0xff0000);
+        //         }
+        //     }
+        // }
+    }
+
+
+    function arePointsCoplanar(points) {
+        if (points.length < 3) {
+            return true; // 如果只有两个点，它们总是共面的
+        }
+    
+        // 从第一个点开始，构建一个平面方程
+        let p0 = points[0];
+        let normal = new THREE.Vector3().subVectors(points[1], p0).cross(new THREE.Vector3().subVectors(points[2], p0)).normalize();
+        let constant = -normal.dot(p0);
+    
+        // 检查其他点是否满足平面方程
+        for (let i = 3; i < points.length; i++) {
+            if (Math.abs(normal.dot(points[i]) + constant) > Number.EPSILON) {
+                return false; // 如果任何一个点不满足平面方程，则返回 false
+            }
+        }
+    
+        return true;
+    }
+
+    
+
+
+    // 初始化最小距离和最近的对象
+    // let minDistance = Infinity;
+    // let nearestObject = null;
+
+    // for (let i = 0; i < intersects.length; i++) {
+    //     let intersectedObject = intersects[i].object;
+        
+    //     // 计算射线与对象的交点到射线起点的距离
+    //     let distance = intersects[i].distance;
+    
+    //     // 如果距离小于当前最小距离，则更新最小距离和最近的对象
+    //     if (distance < minDistance) {
+    //         minDistance = distance;
+    //         nearestObject = intersectedObject;
+    //     }
+    // }
+
+    // //在遍历完成后，nearestObject 就是与射线最接近的对象
+    // if (nearestObject !== null) {
+    //     // 这里执行针对最近对象的操作
+    //     let l = calculateLineLength(nearestObject);
+    //     let dynamicTextElement = document.getElementById('length');
+    //     dynamicTextElement.innerHTML = 'Length : ' + l.toString();
+    //     nearestObject.material.color.set(0xff0000);
+    // }
+    
+}
+
+
+function calculateLineLength(line) {
+    // 获取顶点位置的属性缓冲区
+    let positions = line.geometry.attributes.position;
+
+    // 获取起始点和结束点的位置
+    let startX = positions.getX(0);
+    let startY = positions.getY(0);
+    let startZ = positions.getZ(0);
+
+    let endX = positions.getX(1);
+    let endY = positions.getY(1);
+    let endZ = positions.getZ(1);
+
+    // 计算起始点和结束点之间的距离
+    let length = Math.sqrt((endX - startX) ** 2 + (endY - startY) ** 2 + (endZ - startZ) ** 2);
+
+    return length;
+}
+
+
+// 根据场景中最大物体的尺寸和摄像机的视野范围来计算阈值
+function computeThreshold() {
+
+    // 定义相机的垂直视角（FOV）
+    let fov = camera.fov * (Math.PI / 180); // 将角度转换为弧度
+
+    // 计算相机到屏幕的距离
+    let cameraToScreenDistance = height / (2 * Math.tan(fov / 2));
+
+    // 计算画布的宽高比
+    let aspectRatio = width / height;
+
+    // 计算视角在水平方向上的范围
+    let fovHorizontal = 2 * Math.atan(Math.tan(fov / 2) * aspectRatio);
+
+    // 计算屏幕上一个像素对应到场景内的实际距离
+    let pixelSize = 2 * Math.tan(fovHorizontal / (2 * width)) * cameraToScreenDistance;
+    
+    return 20*pixelSize;
+}
+
+
 
 //以下是stp-web-viewer的寫法
 

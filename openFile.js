@@ -42,11 +42,15 @@ function byteArrayToJsonData(byteArray) {
     //console.log("文件內容:", content);
 
     var worker = new Worker ('./loaders/occt-import-js-worker.js');
+
+    //worker算完之後, postMessage給主線程, 主線程收到(onmessage)後,要執行ImportJsonData
     worker.onmessage = function (ev) {
         //console.log (ev.data);
         //LoadfromJsonData(ev.data)
         ImportJsonData(ev.data)
     }
+
+    //主線程傳資料給worker
     worker.postMessage ({
         format: 'step',
         buffer: byteArray,

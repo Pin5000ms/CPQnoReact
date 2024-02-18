@@ -7,6 +7,7 @@ import { MeshInstanceId } from '../model/meshinstance.js';
 
 import { ConvertModelToThreeObject, ModelToThreeConversionOutput, ModelToThreeConversionParams } from '../threejs/threeconverter.js';
 import { LoadfromObject3D, UpdateMeshesSelection } from '../viewer.js';
+import { TreeNode } from './treenode.js';
 
 
 let model = new Model();
@@ -23,6 +24,7 @@ export function ImportJsonData(jsonData){
     var treeViewDiv = document.getElementById('treeViewDiv');
     treeViewDiv.innerHTML = '';
     CreateTreeView(treeViewDiv, rootNode, true);
+    //CreateTreeView2(treeViewDiv, rootNode);
 
 
     let params = new ModelToThreeConversionParams ();
@@ -49,6 +51,24 @@ export function ImportJsonData(jsonData){
             //this.inProgress = false;
         }
     });
+}
+
+function CreateTreeView2(parent_Element, rootNode){
+    
+    
+    for(let childNode of rootNode.childNodes){
+        let node = new TreeNode(childNode.name, childNode.GetId());
+        node.AddDomElements (parent_Element);
+        CreateTreeView2(node.mainElement, childNode);
+    }
+    if(!rootNode.IsMeshNode()){
+        for(let meshid of rootNode.meshIndices){
+            let node = new TreeNode(rootNode.name, rootNode.GetId());
+            node.AddDomElements (parent_Element);
+        }
+    }
+    
+
 }
 
 
