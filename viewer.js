@@ -143,8 +143,6 @@ export function LoadfromObject3D(_mainObject) {
     controls.enablePan = true;
     controls.screenSpacePanning = false; // Disable panning in screen space
 
-    
-
     // Render the scene
     function animate() {
         requestAnimationFrame(animate);
@@ -197,9 +195,10 @@ function BuildScene(){
 function GenerateEdges(){
     // 监听鼠标点击事件
     modelViewDiv.addEventListener('click', onMouseClick, false);
+
     //Add Edge
     EnumerateMeshes ((mesh) => {
-        let edges = new THREE.EdgesGeometry (mesh.geometry, 5);
+        let edges = new THREE.EdgesGeometry (mesh.geometry);
         let line = new THREE.LineSegments (edges, new THREE.LineBasicMaterial ({
             color: 0x000000
         }));
@@ -207,7 +206,6 @@ function GenerateEdges(){
         line.applyMatrix4 (mesh.matrixWorld);
         line.userData = mesh.userData;
         line.visible = mesh.visible;
-
 
         let positions = line.geometry.attributes.position;
         console.log(positions.count)
@@ -229,7 +227,7 @@ function GenerateEdges(){
         //let threshold = 0.1; // 定义距离的阈值
         //let result = isCircle(points, threshold);
 
-        CreateLine(positions, line.material);
+        CreateLine(positions, line);
 
         // if (result.isCircle) {
         //     CreateLine(positions, new THREE.LineBasicMaterial({ color: 0xFFFFFF }));
@@ -245,7 +243,7 @@ function GenerateEdges(){
     
 }
 
-function CreateLine(positions, material){
+function CreateLine(positions, line){
     
     // 假设 line 是要拆分的线段对象
     let lineSegments = [];  
@@ -263,14 +261,16 @@ function CreateLine(positions, material){
             vertex2.x, vertex2.y, vertex2.z
         ]), 3));
 
-        // 使用现有材质的副本创建新的材质
-        //let newMaterial = line.material.clone();
+        // 使用这两个顶点创建新的线段对象,使用现有材质的副本创建新的材质
+        let singleLine = new THREE.Line(geometry, line.material.clone());
 
-        // 使用这两个顶点创建新的线段对象
-        let singleLine = new THREE.Line(geometry, material.clone());
+        singleLine.userData = line.userData;
+        singleLine.visible = line.visible;
 
         // 将新的线段对象添加到数组中
         lineSegments.push(singleLine);
+
+        
     }
 
     // 将拆分后的线段对象添加到场景中
@@ -380,13 +380,11 @@ function EnumerateMeshes (enumerator)
 
 function EnumerateLines (enumerator)
 {
-    if (mainObject === null) {
+    if (edgeObject === null) {
         return;
     }
-    mainObject.traverse ((obj) => {
-        if (obj.isLineSegments) {
-            enumerator (obj);
-        }
+    edgeObject.traverse ((obj) => {
+        enumerator (obj);
     });
 }
 
@@ -394,6 +392,16 @@ function EnumerateLines (enumerator)
 
 // 设置鼠标点击事件
 function onMouseClick(event) {
+
+    EnumerateLines((line)=>{
+        if(line.id === 2699){
+            console.log(line)
+        }
+        if (line.userData.threeMaterials !== null) {
+            line.material = line.userData.threeMaterials; //還原成原本的material
+            //line.userData.threeMaterials = null;
+        }
+    })
 
     // 获取modelViewDiv元素相对于浏览器窗口的位置
     var boundingRect = modelViewDiv.getBoundingClientRect();
@@ -426,75 +434,139 @@ function onMouseClick(event) {
         intersects = raycaster.intersectObjects(edgeObject.children);
     }
 
+    
 
     for (let i = 0; i < intersects.length; i++) {
         let intersectedObject = intersects[i].object;
 
         let l = calculateLineLength(intersectedObject);
-        let dynamicTextElement = document.getElementById('length');
-        dynamicTextElement.innerHTML = 'Length : ' + l.toString();
-        intersectedObject.material.color.set(0xff0000);
+        
+
+        intersectedObject.userData.threeMaterials = intersectedObject.material;
+        intersectedObject.material = new THREE.LineBasicMaterial({ color: 0x8ec9f0 });
+
+        
 
 
         // 计算输入线段的法向量
-        // let positions = intersectedObject.geometry.attributes.position;
-        // let inputLineVertex1 = new THREE.Vector3(positions.getX(0), positions.getY(0), positions.getZ(0));
-        // let inputLineVertex2 = new THREE.Vector3(positions.getX(1), positions.getY(1), positions.getZ(1));
-        // let inputNormal = new THREE.Vector3().crossVectors(inputLineVertex2, inputLineVertex1);
+        let positions = intersectedObject.geometry.attributes.position;
+        let inputLineVertex1 = new THREE.Vector3(positions.getX(0), positions.getY(0), positions.getZ(0));
+        let inputLineVertex2 = new THREE.Vector3(positions.getX(1), positions.getY(1), positions.getZ(1));
+        //let inputNormal = new THREE.Vector3().crossVectors(inputLineVertex2, inputLineVertex1);
 
-        // 遍历 edgeObject 中的每个线段
-        // for (let i = 0; i < edgeObject.children.length; i++) {
-        //     let line = edgeObject.children[i];
+        let points = [
+            inputLineVertex1,
+            inputLineVertex2,
+        ];
 
-        //     let positions = line.geometry.attributes.position;
-        //     let vertex1 = new THREE.Vector3(positions.getX(0), positions.getY(0), positions.getZ(0));
-        //     let vertex2 = new THREE.Vector3(positions.getX(1), positions.getY(1), positions.getZ(1));
-
-        //     // 计算当前线段的法向量
-        //     let normal = new THREE.Vector3().crossVectors(vertex2, vertex1);
-
-        //     // 计算两个法向量之间的夹角
-        //     let angle = inputNormal.angleTo(normal);
-
-        //     // 检查夹角是否小于阈值，如果是，则认为这两条线在同一个平面上
-        //     if (angle < 0.5) {
-
-        //         let points = [
-        //             inputLineVertex1,
-        //             inputLineVertex2,
-        //             vertex1,
-        //             vertex2
-        //         ];
-    
-        //         if (arePointsCoplanar(points)) {
-        //             line.material.color.set(0xff0000);
-        //         }
-        //     }
-        // }
-    }
-
-
-    function arePointsCoplanar(points) {
-        if (points.length < 3) {
-            return true; // 如果只有两个点，它们总是共面的
-        }
-    
-        // 从第一个点开始，构建一个平面方程
-        let p0 = points[0];
-        let normal = new THREE.Vector3().subVectors(points[1], p0).cross(new THREE.Vector3().subVectors(points[2], p0)).normalize();
-        let constant = -normal.dot(p0);
-    
-        // 检查其他点是否满足平面方程
-        for (let i = 3; i < points.length; i++) {
-            if (Math.abs(normal.dot(points[i]) + constant) > Number.EPSILON) {
-                return false; // 如果任何一个点不满足平面方程，则返回 false
+        let candidate = [];
+        for (let i = 0; i < edgeObject.children.length; i++) {
+            let line = edgeObject.children[i];
+            let l_curr = calculateLineLength(line);
+            if(line.userData.originalMeshInstance.id.IsEqual(intersectedObject.userData.originalMeshInstance.id) && 
+                Math.abs(l_curr - l) < l/100 && 
+                line.uuid !== intersectedObject.uuid)//需要排除當前選擇線段
+            {
+                candidate.push(i);
             }
         }
-    
-        return true;
-    }
 
-    
+
+        let continueProcess = true;
+        let findclosedloop = false;
+        let findidxes = [];
+        while(continueProcess){
+            let pushhead = false;
+            let find = false;
+            let findidx = 0;
+            for (let i = 0; i < candidate.length; i++){
+                let positions = edgeObject.children[candidate[i]].geometry.attributes.position;
+                let vertex1 = new THREE.Vector3(positions.getX(0), positions.getY(0), positions.getZ(0));
+                let vertex2 = new THREE.Vector3(positions.getX(1), positions.getY(1), positions.getZ(1));
+
+                // 计算当前线段的法向量
+                //let normal = new THREE.Vector3().crossVectors(vertex2, vertex1);
+
+                // 计算两个法向量之间的夹角
+                //let angle = inputNormal.angleTo(normal);
+
+                // 检查夹角是否小于阈值，如果是，则认为这两条线在同一个平面上
+                
+                if(vertex1.equals(points[0])){
+                    points.unshift(vertex2);
+                    pushhead = true;
+                    find = true;
+                    findidx = candidate[i];
+                    candidate.splice(i, 1);
+                    break;
+                }
+                else if(vertex1.equals(points[points.length - 1])){
+                    points.push(vertex2);
+                    find = true;
+                    findidx = candidate[i];
+                    candidate.splice(i, 1);
+                    break;
+                }
+                else if(vertex2.equals(points[0])){
+                    points.unshift(vertex1);
+                    pushhead = true;
+                    find = true;          
+                    findidx = candidate[i];
+                    candidate.splice(i, 1);
+                    break;
+                }
+                else if(vertex2.equals(points[points.length - 1])){
+                    points.push(vertex1);
+                    find = true;
+                    findidx = candidate[i];
+                    candidate.splice(i, 1);
+                    break;
+                }
+                else{
+                    continue;
+                }
+            }
+
+            if(find){
+                if (arePointsCoplanar(points)) {
+                    findidxes.push(findidx);
+                }
+                else{
+                    if(pushhead){
+                        points.shift();
+                    }
+                    else{
+                        points.pop();
+                    }
+                }
+            }
+            else{
+                continueProcess = false;
+            }
+            if(points[0].equals(points[points.length-1])){
+                continueProcess = false;
+                findclosedloop = true;
+            }
+            
+            
+        }
+
+        if(findclosedloop){
+            for(let i = 0; i < findidxes.length; i++){
+                if(findidxes[i] !== undefined){
+                    let line = edgeObject.children[findidxes[i]];
+                    
+                    line.userData.threeMaterials = line.material; //原本的material暫存到userData.threeMaterials
+                    line.material = new THREE.LineBasicMaterial({ color: 0x8ec9f0 });
+                    l += calculateLineLength(line);
+                }
+            }
+        }
+
+        let dynamicTextElement = document.getElementById('length');
+        dynamicTextElement.innerHTML = 'Length : ' + l.toString();
+        
+    }
 
 
     // 初始化最小距离和最近的对象
@@ -523,6 +595,27 @@ function onMouseClick(event) {
     //     nearestObject.material.color.set(0xff0000);
     // }
     
+}
+
+
+function arePointsCoplanar(points) {
+    if (points.length < 3) {
+        return true; // 如果只有两个点，它们总是共面的
+    }
+
+    // 从第一个点开始，构建一个平面方程
+    let p0 = points[0];
+    let normal = new THREE.Vector3().subVectors(points[1], p0).cross(new THREE.Vector3().subVectors(points[2], p0)).normalize();
+    let constant = -normal.dot(p0);
+
+    // 检查其他点是否满足平面方程
+    for (let i = 3; i < points.length; i++) {
+        if (Math.abs(normal.dot(points[i]) + constant) > Number.EPSILON) {
+            return false; // 如果任何一个点不满足平面方程，则返回 false
+        }
+    }
+
+    return true;
 }
 
 
