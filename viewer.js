@@ -208,11 +208,11 @@ function GenerateEdges(){
         line.visible = mesh.visible;
 
         let positions = line.geometry.attributes.position;
-        console.log(positions.count)
+        //console.log(positions.count)
 
 
-        let positions2 = mesh.geometry.attributes.position;
-        console.log(positions2.count)
+        //let positions2 = mesh.geometry.attributes.position;
+        //console.log(positions2.count)
 
         let points = [];
         for (let i = 0; i < positions.count; i++) {
@@ -394,9 +394,6 @@ function EnumerateLines (enumerator)
 function onMouseClick(event) {
 
     EnumerateLines((line)=>{
-        if(line.id === 2699){
-            console.log(line)
-        }
         if (line.userData.threeMaterials !== null) {
             line.material = line.userData.threeMaterials; //還原成原本的material
             //line.userData.threeMaterials = null;
@@ -543,6 +540,7 @@ function onMouseClick(event) {
             else{
                 continueProcess = false;
             }
+
             if(points[0].equals(points[points.length-1])){
                 continueProcess = false;
                 findclosedloop = true;
