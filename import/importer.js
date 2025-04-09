@@ -18,13 +18,10 @@ export function ImportJsonData(jsonData){
     let rootNode = model.GetRootNode ();
     ImportNode (jsonData, jsonData.root, rootNode, colorToMaterial);
 
-    console.log(rootNode);
-
     
     var treeViewDiv = document.getElementById('treeViewDiv');
     treeViewDiv.innerHTML = '';
     CreateTreeView(treeViewDiv, rootNode, true);
-    //CreateTreeView2(treeViewDiv, rootNode);
 
 
     let params = new ModelToThreeConversionParams ();
@@ -34,21 +31,10 @@ export function ImportJsonData(jsonData){
     //callbacks
     {
         onTextureLoaded : () => {
-            //callbacks.onTextureLoaded ();
+
         },
         onModelLoaded : (threeObject) => {
             LoadfromObject3D(threeObject);
-            //this.defaultMaterials = output.defaultMaterials;
-            //this.objectUrls = output.objectUrls;
-            // if (importResult.upVector === Direction.X) {
-            //     let rotation = new THREE.Quaternion ().setFromAxisAngle (new THREE.Vector3 (0.0, 0.0, 1.0), Math.PI / 2.0);
-            //     threeObject.quaternion.multiply (rotation);
-            // } else if (importResult.upVector === Direction.Z) {
-            //     let rotation = new THREE.Quaternion ().setFromAxisAngle (new THREE.Vector3 (1.0, 0.0, 0.0), -Math.PI / 2.0);
-            //     threeObject.quaternion.multiply (rotation);
-            // }
-            //callbacks.onModelFinished (importResult, threeObject);
-            //this.inProgress = false;
         }
     });
 }
@@ -93,7 +79,7 @@ function CreateTreeView(parent_Element, rootNode, isRoot)
             // liElement.appendChild(buttonElement);
 
             liElement.addEventListener('click', function() {
-                console.log(childNode.meshIndices[0]);
+                //console.log(childNode.meshIndices[0]);
                 UpdateMeshesSelection(new MeshInstanceId (childNode.GetId (), childNode.meshIndices[0]));
             });
 
@@ -173,10 +159,14 @@ function ImportMesh (occtMesh, colorToMaterial)
     if (occtMesh.name) {
         mesh.SetName (occtMesh.name);
     }
+
+    
     for (let brepFace of occtMesh.brep_faces) {
+
         if (brepFace.color === null) {
             continue;
         }
+
         let faceColor = RGBColorFromFloatComponents (brepFace.color[0], brepFace.color[1], brepFace.color[2]);
         let faceMaterialIndex = colorToMaterial.GetMaterialIndex (faceColor.r, faceColor.g, faceColor.b, null);
         for (let i = brepFace.first; i <= brepFace.last; i++) {

@@ -326,8 +326,6 @@ export class ThreeMeshMaterialHandler
 
 export function ConvertModelToThreeObject (model, conversionParams, conversionOutput, callbacks)
 {
-	//ConvertModelToThreeObject call=> ConvertNodeHierarchy call=>  
-	// ConvertMesh  call=> CreateThreeTriangleMesh & CreateThreeLineMesh
 	function CreateThreeTriangleMesh (meshInstance, materialHandler)
 	{
 		let mesh = meshInstance.mesh;
@@ -422,6 +420,83 @@ export function ConvertModelToThreeObject (model, conversionParams, conversionOu
 		return threeMesh;
 	}
 
+	function CreateThreeBrepFaceMesh(meshInstance, materialHandler)
+	{
+		let mesh = meshInstance.mesh;
+		let brepfaceCount = mesh.BrepFaceCount ();
+		if (brepfaceCount === 0) {
+			return null;
+		}
+
+		let threeBrepFaceMeshes = [];
+
+		let meshHasUVs = (mesh.TextureUVCount () > 0);
+
+		for (let i = 0; i < brepfaceCount; i++) {
+			let vertices = [];
+			let normals = [];
+			let uvs = [];
+
+			let brepface = mesh.GetBrepFace(i);
+
+			
+			let threeGeometry = new THREE.BufferGeometry (); //創建mesh的buffer
+
+			let meshMaterialHandler = new ThreeMeshMaterialHandler (threeGeometry, MaterialGeometryType.Face, materialHandler); //處理每個小三角形的material
+			let processedTriangleCount = 0;
+
+			for(let j = brepface.first; j <= brepface.last; j++){
+				let triangle = mesh.GetTriangle (j);
+
+				let v0 = mesh.GetVertex (triangle.v0);
+				let v1 = mesh.GetVertex (triangle.v1);
+				let v2 = mesh.GetVertex (triangle.v2);
+				vertices.push (v0.x, v0.y, v0.z, v1.x, v1.y, v1.z, v2.x, v2.y, v2.z);
+
+				let n0 = mesh.GetNormal (triangle.n0);
+				let n1 = mesh.GetNormal (triangle.n1);
+				let n2 = mesh.GetNormal (triangle.n2);
+				normals.push (n0.x, n0.y, n0.z, n1.x, n1.y, n1.z, n2.x, n2.y, n2.z);
+
+				if (triangle.HasTextureUVs ()) {
+					let u0 = mesh.GetTextureUV (triangle.u0);
+					let u1 = mesh.GetTextureUV (triangle.u1);
+					let u2 = mesh.GetTextureUV (triangle.u2);
+					uvs.push (u0.x, u0.y, u1.x, u1.y, u2.x, u2.y);
+				} else if (meshHasUVs) {
+					uvs.push (0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+				}
+
+				meshMaterialHandler.ProcessItem (processedTriangleCount, triangle.mat);
+				processedTriangleCount += 1;
+			}
+
+			meshMaterialHandler.Finalize (processedTriangleCount);
+
+			
+			threeGeometry.setAttribute ('position', new THREE.Float32BufferAttribute (vertices, 3));
+			threeGeometry.setAttribute ('normal', new THREE.Float32BufferAttribute (normals, 3));
+			if (uvs.length !== 0) {
+				threeGeometry.setAttribute ('uv', new THREE.Float32BufferAttribute (uvs, 2));
+			}
+
+			
+			let threeMesh = new THREE.Mesh (threeGeometry, meshMaterialHandler.meshThreeMaterials);
+
+			threeMesh.name = mesh.GetName ();
+
+			threeMesh.userData = {
+				originalMeshInstance : meshInstance,
+				originalMaterials : meshMaterialHandler.meshOriginalMaterials,
+				threeMaterials : null
+			};
+			threeBrepFaceMeshes.push(threeMesh);
+
+			
+		}
+		return threeBrepFaceMeshes;
+	}
+
 	function CreateThreeLineMesh (meshInstance, materialHandler)
 	{
 		let mesh = meshInstance.mesh;
@@ -464,7 +539,7 @@ export function ConvertModelToThreeObject (model, conversionParams, conversionOu
 		threeGeometry.setAttribute ('position', new THREE.Float32BufferAttribute (vertices, 3));
 
 		let threeLine = new THREE.LineSegments (threeGeometry, meshMaterialHandler.meshThreeMaterials);
-		//把自定義資料塞到threeObject裡面
+		
 		threeLine.userData = {
 			originalMeshInstance : meshInstance,
 			originalMaterials : meshMaterialHandler.meshOriginalMaterials,
@@ -479,22 +554,26 @@ export function ConvertModelToThreeObject (model, conversionParams, conversionOu
 			return;
 		}
 
-		let triangleMesh = CreateThreeTriangleMesh (meshInstance, materialHandler);
-		if (triangleMesh !== null) {
-			threeObject.add (triangleMesh);
+		let brepfaceMeshes = CreateThreeBrepFaceMesh(meshInstance, materialHandler);
+		if (brepfaceMeshes !== null) {
+			for (var brepfaceMesh of brepfaceMeshes) {
+				threeObject.add (brepfaceMesh);
+			}
 		}
 
 		let lineMesh = CreateThreeLineMesh (meshInstance, materialHandler);
 		if (lineMesh !== null) {
 			threeObject.add (lineMesh);
 		}
+
+
+
 	}
 
 	function ConvertNodeHierarchy (model, threeRootNode, materialHandler, stateHandler)
 	{
 		let nodeTree = new ThreeNodeTree (model, threeRootNode);
 		let threeNodeItems = nodeTree.GetNodeItems ();
-		//console.log(threeRootNode);
 
 		RunTasksBatch (threeNodeItems.length, 100, {
 			runTask : (firstMeshInstanceIndex, lastMeshInstanceIndex, onReady) => {

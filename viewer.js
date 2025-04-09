@@ -1,324 +1,178 @@
 import * as THREE from './jsm/three.module.js'
 import { OrbitControls } from './jsm/OrbitControls.js'
 import { RGBColor} from './model/color.js'
-import { CreateHighlightMaterials } from './threejs/threeutils.js';
+import { DisposeThreeObjects, CreateHighlightMaterials, ConvertColorToThreeColor } from './threejs/threeutils.js';
 
 const width = 700;
 const height = 500;
 var scene, renderer, camera, group;
 let mainObject = new THREE.Object3D();
 let edgeObject = new THREE.Object3D();
+let selectLineObject = new THREE.Object3D();
 
-// 创建射线投射器
+
+
 var raycaster = new THREE.Raycaster();
 var mouse = new THREE.Vector2();
 var modelViewDiv = document.getElementById('modelViewDiv');
 
-export function LoadfromJsonData(jsonData) {
-
-    var modelViewDiv = document.getElementById('modelViewDiv');
-    // Remove the existing renderer DOM element if it exists
-    const existingRendererElement = document.querySelector('canvas');
-    if (existingRendererElement) {
-        modelViewDiv.removeChild(existingRendererElement);
-    }
-
-    // Initialize Three.js scene, camera, and renderer
-    scene = new THREE.Scene();
-    // const directionalLight = new THREE.DirectionalLight (0x888888);
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 1); // White light with intensity 1
-    directionalLight.position.set(1, 1, 1); // Set the position of the light
-    scene.add(directionalLight);
-
-    const ambientLight = new THREE.AmbientLight(0x444444);
-    scene.add(ambientLight);
-
-    const backgroundLight = new THREE.HemisphereLight(0xffffff, 0x444444, 1); // Sky color, ground color, intensity
-    scene.add(backgroundLight);
-
-    renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setSize(width, height);
-    renderer.setClearColor(0x000000); // background color
-
-    if(modelViewDiv)
-        modelViewDiv.appendChild(renderer.domElement);
-
-    mainObject = new THREE.Object3D();
-
-    
-    LoadGeometry(mainObject, jsonData);
-
-
-
-    scene.add(mainObject);
-    console.log(mainObject);
-
-    // Calculate the bounding box of the loaded geometry
-    const bbox = new THREE.Box3().setFromObject(mainObject);
-
-    // Calculate the center of the bounding box
-    const center = new THREE.Vector3();
-    bbox.getCenter(center);
-
-    // Calculate the size of the bounding box
-    const size = new THREE.Vector3();
-    bbox.getSize(size);
-
-    // Calculate the maximum dimension of the bounding box
-    const maxDimension = Math.max(size.x, size.y, size.z);
-
-    // Calculate the distance from the camera to the object based on the maximum dimension
-    const distance = maxDimension * 2;
-
-    // Calculate the far value based on the distance to the object
-    const farValue = distance + maxDimension;
-
-    camera = new THREE.PerspectiveCamera(75, width / height, 0.1, farValue);
-    // Set the camera position and look at the center of the bounding box
-    camera.position.set(center.x, center.y, center.z + maxDimension);
-    camera.lookAt(center);
-
-    // Add OrbitControls
-    const controls = new OrbitControls(camera, renderer.domElement);
-    controls.enableDamping = true; // Enable smooth camera movement
-    controls.dampingFactor = 0.05; // Set the damping factor for the controls
-    controls.enableZoom = true;
-    controls.enableRotate = true;
-    controls.enablePan = true;
-    controls.screenSpacePanning = false; // Disable panning in screen space
-
-    // Render the scene
-    function animate() {
-        requestAnimationFrame(animate);
-        controls.update(); // Update the OrbitControls
-        renderer.render(scene, camera);
-    }
-    animate();
-}
+let highlightColor = new RGBColor (142, 201, 240);
 
 
 export function LoadfromObject3D(_mainObject) {
+    
+    Clear(mainObject);
+    Clear(edgeObject);
+
     mainObject = _mainObject;
 
+    edgeObject = GenerateEdges();
+
+    scene.add(mainObject);
+    scene.add(edgeObject);
     
-
-    BuildScene();
-
-
-    GenerateEdges();
     
+    
+    SetViewPoint(mainObject);
 
-
-    // Calculate the bounding box of the loaded geometry
-    const bbox = new THREE.Box3().setFromObject(mainObject);
-
-    // Calculate the center of the bounding box
-    const center = new THREE.Vector3();
-    bbox.getCenter(center);
-
-    // Calculate the size of the bounding box
-    const size = new THREE.Vector3();
-    bbox.getSize(size);
-
-    // Calculate the maximum dimension of the bounding box
-    const maxDimension = Math.max(size.x, size.y, size.z);
-
-    // Calculate the distance from the camera to the object based on the maximum dimension
-    const distance = maxDimension * 2;
-
-    // Calculate the far value based on the distance to the object
-    const farValue = distance + maxDimension;
-
-    camera = new THREE.PerspectiveCamera(75, width / height, 0.1, farValue);
-    // Set the camera position and look at the center of the bounding box
-    camera.position.set(center.x, center.y, center.z + maxDimension);
-    camera.lookAt(center);
-
-    // Add OrbitControls
-    const controls = new OrbitControls(camera, renderer.domElement);
-    controls.enableDamping = true; // Enable smooth camera movement
-    controls.dampingFactor = 0.05; // Set the damping factor for the controls
-    controls.enableZoom = true;
-    controls.enableRotate = true;
-    controls.enablePan = true;
-    controls.screenSpacePanning = false; // Disable panning in screen space
-
-    // Render the scene
-    function animate() {
-        requestAnimationFrame(animate);
-        controls.update(); // Update the OrbitControls
-        renderer.render(scene, camera);
-    }
-    animate();
 }
 
-function BuildScene(){
+export function BuildScene(){
 
-    // Remove the existing renderer DOM element if it exists
     const existingRendererElement = document.querySelector('canvas');
-    if (existingRendererElement) {
+    if (existingRendererElement) 
+    {
+        scene.clear();
         modelViewDiv.removeChild(existingRendererElement);
     }
 
-    // Initialize Three.js scene, camera, and renderer
     scene = new THREE.Scene();
-    // const directionalLight = new THREE.DirectionalLight (0x888888);
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 1); // White light with intensity 1
-    directionalLight.position.set(1, 1, 1); // Set the position of the light
-    scene.add(directionalLight);
 
-    //var axesHelper = new THREE.AxesHelper( 100 );
-    //scene.add( axesHelper );
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+    directionalLight.position.set(1, 1, 1);
+    scene.add(directionalLight);
 
     const ambientLight = new THREE.AmbientLight(0x444444);
     scene.add(ambientLight);
 
-    const backgroundLight = new THREE.HemisphereLight(0xffffff, 0x444444, 1); // Sky color, ground color, intensity
+    const backgroundLight = new THREE.HemisphereLight(0xffffff, 0x444444, 1);
     scene.add(backgroundLight);
 
     renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(width, height);
-    renderer.setClearColor(0x000000); // background color
-
-    
+    renderer.setClearColor(0x000000);
 
     if(modelViewDiv)
     {
         modelViewDiv.appendChild(renderer.domElement);
+        modelViewDiv.addEventListener('click', onMouseClick, false);
     }
-        
 
-    scene.add(mainObject);
+    
 }
 
 
-function GenerateEdges(){
-    // 监听鼠标点击事件
-    modelViewDiv.addEventListener('click', onMouseClick, false);
+function SetViewPoint(mainObject){
+    const bbox = new THREE.Box3().setFromObject(mainObject);
 
-    //Add Edge
+    const center = new THREE.Vector3();
+    bbox.getCenter(center);
+
+    const size = new THREE.Vector3();
+    bbox.getSize(size);
+
+    const maxDimension = Math.max(size.x, size.y, size.z);
+
+    const distance = maxDimension * 2;
+
+    const farValue = distance + maxDimension;
+
+    camera = new THREE.PerspectiveCamera(75, width / height, 0.1, farValue);
+    camera.position.set(center.x, center.y, center.z + maxDimension);
+    camera.lookAt(center);
+
+    SetOrbitControl();
+}
+
+function SetOrbitControl(){
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.05;
+    controls.enableZoom = true;
+    controls.enableRotate = true;
+    controls.enablePan = true;
+    controls.screenSpacePanning = false;
+    renderer.render(scene, camera);
+
+    function animate() {
+        requestAnimationFrame(animate);
+        controls.update();
+        renderer.render(scene, camera);
+    }
+    animate();
+}
+
+
+
+function GenerateEdges(){
+    let _edgeObject = new THREE.Object3D();
     EnumerateMeshes ((mesh) => {
         let edges = new THREE.EdgesGeometry (mesh.geometry);
         let line = new THREE.LineSegments (edges, new THREE.LineBasicMaterial ({
             color: 0x000000
         }));
 
+
+        line.isLineSegments = true;
         line.applyMatrix4 (mesh.matrixWorld);
         line.userData = mesh.userData;
-        line.visible = mesh.visible;
+        //line.visible = mesh.visible;
+        _edgeObject.add(line);
 
-        let positions = line.geometry.attributes.position;
-        //console.log(positions.count)
-
-
-        //let positions2 = mesh.geometry.attributes.position;
-        //console.log(positions2.count)
-
-        let points = [];
-        for (let i = 0; i < positions.count; i++) {
-            let vertex = new THREE.Vector3().fromBufferAttribute(positions, i);
-            if (isNaN(vertex.x) || isNaN(vertex.y) || isNaN(vertex.z)) {
-                console.log('Vector contains NaN values');
-            } else {
-                points.push(vertex);
-            }
-        }
-
-        //let threshold = 0.1; // 定义距离的阈值
-        //let result = isCircle(points, threshold);
-
-        CreateLine(positions, line);
-
-        // if (result.isCircle) {
-        //     CreateLine(positions, new THREE.LineBasicMaterial({ color: 0xFFFFFF }));
-        // } else {
-        //     CreateLine(positions, line.material);
-        // }
-
-        
-
-        
+        Dispose(edges);
+        //Dispose(line);
     });
-    scene.add(edgeObject);
-    
+
+    return _edgeObject;
 }
 
-function CreateLine(positions, line){
-    
-    // 假设 line 是要拆分的线段对象
-    let lineSegments = [];  
+function CreateSubLine(meshes){
+    let result = new THREE.Object3D();
+    for(let mesh of meshes){
+        let edges = new THREE.EdgesGeometry (mesh.geometry);
+        let positions = edges.attributes.position;
+        for (let i = 0; i < positions.count; i += 2) {
+            
+            let j = i+1;
 
-    // 遍历属性缓冲区中的顶点位置
-    for (let i = 0; i < positions.count; i += 2) {
-        // 获取每个顶点的位置
-        let vertex1 = new THREE.Vector3().fromBufferAttribute(positions, i);
-        let vertex2 = new THREE.Vector3().fromBufferAttribute(positions, i + 1);
-
-        // 创建两个顶点组成的几何体
-        let geometry = new THREE.BufferGeometry();
-        geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array([
-            vertex1.x, vertex1.y, vertex1.z,
-            vertex2.x, vertex2.y, vertex2.z
-        ]), 3));
-
-        // 使用这两个顶点创建新的线段对象,使用现有材质的副本创建新的材质
-        let singleLine = new THREE.Line(geometry, line.material.clone());
-
-        singleLine.userData = line.userData;
-        singleLine.visible = line.visible;
-
-        // 将新的线段对象添加到数组中
-        lineSegments.push(singleLine);
-
-        
-    }
-
-    // 将拆分后的线段对象添加到场景中
-    lineSegments.forEach(function(singleLine){
-        edgeObject.add(singleLine);
-    });
-}
+            let geometry = new THREE.BufferGeometry();
+            geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array([
+                positions.array[i*3], positions.array[i*3+1], positions.array[i*3+2],
+                positions.array[j*3], positions.array[j*3+1], positions.array[j*3+2],
+            ]), 3));
 
 
-function isCircle(points, threshold) {
-    // 计算几何中心
-    let center = new THREE.Vector3();
-    for (let i = 0; i < points.length; i++) {
-        center.add(points[i]);
-    }
-    center.divideScalar(points.length);
+            let singleLine = new THREE.Line(geometry, new THREE.LineBasicMaterial ({
+                color: 0xffffff
+            }));
 
-    // 计算每个点到几何中心的距离
-    let distances = [];
-    for (let i = 0; i < points.length; i++) {
-        let distance = points[i].distanceTo(center);
-        distances.push(distance);
-    }
+            geometry.dispose();
 
-    // 判断距离是否相等
-    for (let i = 1; i < distances.length; i++) {
-        if (Math.abs(distances[i] - distances[0]) > threshold) {
-            return { isCircle: false, radius: null };
+            result.add(singleLine);
         }
     }
 
-    // 计算近似半径
-    let sum = distances.reduce((acc, cur) => acc + cur, 0);
-    let averageDistance = sum / distances.length;
-
-    return { isCircle: true, radius: averageDistance };
+    return result;
 }
 
 
 
 export function UpdateMeshesSelection (meshInstanceId)
 {
-    let highlightColor = new RGBColor (142, 201, 240);
     SetMeshesHighlight (highlightColor, meshInstanceId);
 }
 
 function isHighlighted(meshUserData, selectedMeshInstanceId){
-    //console.log(meshUserData.originalMeshInstance.id);
     if (selectedMeshInstanceId !== null && meshUserData.originalMeshInstance.id.IsEqual (selectedMeshInstanceId))
     {
         return true;
@@ -328,28 +182,25 @@ function isHighlighted(meshUserData, selectedMeshInstanceId){
 
 function SetMeshesHighlight (highlightColor, selectedMeshInstanceId)
 {
-    //let withPolygonOffset = this.mainModel.HasLinesOrEdges ();
     let withPolygonOffset = true;
     EnumerateMeshesAndLines ((mesh) => {
+        
         let highlighted = isHighlighted (mesh.userData, selectedMeshInstanceId);
         if (highlighted) 
         {
             if (mesh.userData.threeMaterials === null) {
-                mesh.userData.threeMaterials = mesh.material; //原本的material暫存到userData.threeMaterials
+                mesh.userData.threeMaterials = mesh.material;
                 mesh.material = CreateHighlightMaterials (mesh.userData.threeMaterials, highlightColor, withPolygonOffset);
             }
         } 
         else 
         {
             if (mesh.userData.threeMaterials !== null) {
-                mesh.material = mesh.userData.threeMaterials; //還原成原本的material
+                mesh.material = mesh.userData.threeMaterials;
                 mesh.userData.threeMaterials = null;
             }
         }
     });
-
-    //Render ();
-    //renderer.render(scene, camera);
 }
 
 function EnumerateMeshesAndLines (enumerator)
@@ -384,232 +235,331 @@ function EnumerateLines (enumerator)
         return;
     }
     edgeObject.traverse ((obj) => {
-        enumerator (obj);
+        if (obj.isLineSegments){
+            enumerator (obj);
+        }
     });
 }
 
+let mode = '';
+
+var form = document.getElementById('myForm');
+  form.addEventListener('change', function(event) {
+    mode = document.querySelector('input[name="options"]:checked').value;
+  });
 
 
-// 设置鼠标点击事件
 function onMouseClick(event) {
+    if(mode === 'face')
+        SelectFace(event);
+    else if(mode === 'line')
+        SelectLine(event);
+}
 
-    EnumerateLines((line)=>{
-        if (line.userData.threeMaterials !== null) {
-            line.material = line.userData.threeMaterials; //還原成原本的material
-            //line.userData.threeMaterials = null;
+
+//選擇面
+
+function SelectFace(event){
+
+    EnumerateMeshes((mesh)=>{
+        if (mesh.userData.threeMaterials !== null) {
+            mesh.material = mesh.userData.threeMaterials; //還原成原本的material
+            mesh.userData.threeMaterials = null;
         }
     })
 
-    // 获取modelViewDiv元素相对于浏览器窗口的位置
+
     var boundingRect = modelViewDiv.getBoundingClientRect();
 
-    // 计算鼠标点击位置相对于modelViewDiv元素的坐标
     var mouseX = event.clientX - boundingRect.left;
     var mouseY = event.clientY - boundingRect.top;
 
-    //console.log(mouseX)
-    //console.log(mouseY)
 
-    // 计算鼠标点击位置
     mouse.x = ((mouseX) / width) * 2 - 1;
     mouse.y = -((mouseY) / height) * 2 + 1;
 
 
     let local_thres = computeThreshold();
 
-    // 通过相机和鼠标位置更新射线
     raycaster.setFromCamera(mouse, camera);
     raycaster.params.Line.threshold = local_thres;
 
-    // 计算物体与射线的相交情况
+
+    var intersects = raycaster.intersectObjects(mainObject.children);
+
+    let minDistance = Infinity;
+    let nearestObject = null;
+
+    for (let i = 0; i < intersects.length; i++) {
+        let intersectedObject = intersects[i].object;
+        
+        // 計算射線與物體的交點到射線起點的距離
+        let distance = intersects[i].distance;
+    
+        // 如果距離小於當前最小距離，則更新最小距離和最近的對象
+        if (distance < minDistance) {
+            minDistance = distance;
+            nearestObject = intersectedObject;
+        }
+    }
+
+    if(nearestObject !== null){
+        let a = computeSurfaceArea(nearestObject);
+        let dynamicTextElement = document.getElementById('area');
+        dynamicTextElement.innerHTML = 'Area : ' + a.toString();
+
+        nearestObject.userData.threeMaterials = nearestObject.material;
+        nearestObject.material = new THREE.MeshPhongMaterial ({
+            color : ConvertColorToThreeColor (highlightColor),
+            side : THREE.DoubleSide
+        });
+    }
+}
+
+
+function computeSurfaceArea(mesh) {
+    let geometry = mesh.geometry;
+
+    if (geometry.isBufferGeometry) {
+        let positions = geometry.attributes.position.array;
+
+        let area = 0;
+
+        for (let i = 0; i < positions.length; i += 9) {
+
+
+            let v1 = new THREE.Vector3(positions[i], positions[i + 1], positions[i + 2]);
+            let v2 = new THREE.Vector3(positions[i + 3], positions[i + 4], positions[i + 5]);
+            let v3 = new THREE.Vector3(positions[i + 6], positions[i + 7], positions[i + 8]);
+
+            // 计算三角形的面积（使用三角形的两个边向量）
+            // let a = v1.distanceTo(v2);
+            // let b = v2.distanceTo(v3);
+            // let c = v3.distanceTo(v1);
+            // let s = (a + b + c) / 2;
+            // let triangleArea = Math.sqrt(s * (s - a) * (s - b) * (s - c));
+
+            // 向量 AB 和 AC
+            let AB = new THREE.Vector3().subVectors(v2, v1);
+            let AC = new THREE.Vector3().subVectors(v3, v1);
+
+            // 叉乘得到的向量
+            let crossProduct = new THREE.Vector3().crossVectors(AB, AC);
+
+            // 计算向量的长度作为三角形的面积
+            let triangleArea = 0.5 * crossProduct.length();
+
+            area += triangleArea;
+        }
+
+        return area;
+    } else {
+        console.error('Geometry is not a BufferGeometry!');
+        return 0;
+    }
+}
+
+
+
+//選擇線
+
+function SelectLine(event){
+
+    edgeObject.remove(selectLineObject);
+    Dispose(selectLineObject);
+    selectLineObject = new THREE.Object3D();
+
+    var boundingRect = modelViewDiv.getBoundingClientRect();
+
+    var mouseX = event.clientX - boundingRect.left;
+    var mouseY = event.clientY - boundingRect.top;
+
+    mouse.x = ((mouseX) / width) * 2 - 1;
+    mouse.y = -((mouseY) / height) * 2 + 1;
+
+
+    let local_thres = computeThreshold();
+
+    raycaster.setFromCamera(mouse, camera);
+    raycaster.params.Line.threshold = local_thres;
+
     var intersects = raycaster.intersectObjects(edgeObject.children);
 
 
-    while(intersects.length > 1){
+    while(intersects.length > 2){
         local_thres = local_thres/2;
         raycaster.params.Line.threshold = local_thres;
         intersects = raycaster.intersectObjects(edgeObject.children);
     }
 
     
+    if(intersects.length >=1 )
+    {
+        let intersectedEdge1 = intersects[0].object;
+        //let intersectedEdge2 = intersects[1].object;
 
-    for (let i = 0; i < intersects.length; i++) {
-        let intersectedObject = intersects[i].object;
+        let mesh1 = FindMesh(intersectedEdge1.userData.originalMeshInstance.id);
+        //let mesh2 = SelectMesh(intersectedEdge2.userData.originalMeshInstance.id);
 
-        let l = calculateLineLength(intersectedObject);
-        
-
-        intersectedObject.userData.threeMaterials = intersectedObject.material;
-        intersectedObject.material = new THREE.LineBasicMaterial({ color: 0x8ec9f0 });
-
-        
+        let sublines = CreateSubLine(mesh1);//add sublines to selectObject
+        //edgeObject.add(sublines);
 
 
-        // 计算输入线段的法向量
-        let positions = intersectedObject.geometry.attributes.position;
-        let inputLineVertex1 = new THREE.Vector3(positions.getX(0), positions.getY(0), positions.getZ(0));
-        let inputLineVertex2 = new THREE.Vector3(positions.getX(1), positions.getY(1), positions.getZ(1));
-        //let inputNormal = new THREE.Vector3().crossVectors(inputLineVertex2, inputLineVertex1);
+        let subintersects = raycaster.intersectObjects(sublines.children);
 
-        let points = [
-            inputLineVertex1,
-            inputLineVertex2,
-        ];
+        if(subintersects.length >=1){
+            let subline = subintersects[0].object;
+            let singleLine = new THREE.Line(subline.geometry, new THREE.LineBasicMaterial ({
+                color: 0x8ec9f0
+            }));
+            selectLineObject.add(singleLine);
 
-        let candidate = [];
-        for (let i = 0; i < edgeObject.children.length; i++) {
-            let line = edgeObject.children[i];
-            let l_curr = calculateLineLength(line);
-            if(line.userData.originalMeshInstance.id.IsEqual(intersectedObject.userData.originalMeshInstance.id) && 
-                Math.abs(l_curr - l) < l/100 && 
-                line.uuid !== intersectedObject.uuid)//需要排除當前選擇線段
-            {
-                candidate.push(i);
-            }
+            let l = computeLineLength(subline);
+            l = FindClosedCircle(l, sublines, subline);
+
+            edgeObject.add(selectLineObject);
+
+            let dynamicTextElement = document.getElementById('length');
+            dynamicTextElement.innerHTML = 'Length : ' + l.toString();
         }
+    }
 
+}
 
-        let continueProcess = true;
-        let findclosedloop = false;
-        let findidxes = [];
-        while(continueProcess){
-            let pushhead = false;
-            let find = false;
-            let findidx = 0;
-            for (let i = 0; i < candidate.length; i++){
-                let positions = edgeObject.children[candidate[i]].geometry.attributes.position;
-                let vertex1 = new THREE.Vector3(positions.getX(0), positions.getY(0), positions.getZ(0));
-                let vertex2 = new THREE.Vector3(positions.getX(1), positions.getY(1), positions.getZ(1));
+function FindMesh(selectedMeshInstanceId){
+    let result = [];
+    EnumerateMeshes ((mesh) => {
+        if(mesh.userData.originalMeshInstance.id.IsEqual (selectedMeshInstanceId)){
+            result.push(mesh);
+        }
+    });
+    return result;
+}
 
-                // 计算当前线段的法向量
-                //let normal = new THREE.Vector3().crossVectors(vertex2, vertex1);
+function FindClosedCircle(l, sublines, subline){
+    let positions = subline.geometry.attributes.position;
+    let inputLineVertex1 = new THREE.Vector3(positions.getX(0), positions.getY(0), positions.getZ(0));
+    let inputLineVertex2 = new THREE.Vector3(positions.getX(1), positions.getY(1), positions.getZ(1));
 
-                // 计算两个法向量之间的夹角
-                //let angle = inputNormal.angleTo(normal);
+    let points = [
+        inputLineVertex1,
+        inputLineVertex2,
+    ];
 
-                // 检查夹角是否小于阈值，如果是，则认为这两条线在同一个平面上
-                
-                if(vertex1.equals(points[0])){
-                    points.unshift(vertex2);
-                    pushhead = true;
-                    find = true;
-                    findidx = candidate[i];
-                    candidate.splice(i, 1);
-                    break;
-                }
-                else if(vertex1.equals(points[points.length - 1])){
-                    points.push(vertex2);
-                    find = true;
-                    findidx = candidate[i];
-                    candidate.splice(i, 1);
-                    break;
-                }
-                else if(vertex2.equals(points[0])){
-                    points.unshift(vertex1);
-                    pushhead = true;
-                    find = true;          
-                    findidx = candidate[i];
-                    candidate.splice(i, 1);
-                    break;
-                }
-                else if(vertex2.equals(points[points.length - 1])){
-                    points.push(vertex1);
-                    find = true;
-                    findidx = candidate[i];
-                    candidate.splice(i, 1);
-                    break;
-                }
-                else{
-                    continue;
-                }
+    let candidate = [];
+    for (let i = 0; i < sublines.children.length; i++) {
+        let line = sublines.children[i];
+        let l_curr = computeLineLength(line);
+        if( Math.abs(l_curr - l) < l/100 && line.uuid !== subline.uuid)
+        {
+            candidate.push(i);
+        }
+    }
+
+    let continueProcess = true;
+    let findclosedloop = false;
+    let findidxes = [];
+    while(continueProcess){
+        let pushhead = false;
+        let find = false;
+        let findidx = 0;
+        for (let i = 0; i < candidate.length; i++){
+            let positions = sublines.children[candidate[i]].geometry.attributes.position;
+            let vertex1 = new THREE.Vector3(positions.getX(0), positions.getY(0), positions.getZ(0));
+            let vertex2 = new THREE.Vector3(positions.getX(1), positions.getY(1), positions.getZ(1));
+            
+            if(vertex1.equals(points[0])){
+                points.unshift(vertex2);
+                pushhead = true;
+                find = true;
+                findidx = candidate[i];
+                candidate.splice(i, 1);
+                break;
             }
-
-            if(find){
-                if (arePointsCoplanar(points)) {
-                    findidxes.push(findidx);
-                }
-                else{
-                    if(pushhead){
-                        points.shift();
-                    }
-                    else{
-                        points.pop();
-                    }
-                }
+            else if(vertex1.equals(points[points.length - 1])){
+                points.push(vertex2);
+                find = true;
+                findidx = candidate[i];
+                candidate.splice(i, 1);
+                break;
+            }
+            else if(vertex2.equals(points[0])){
+                points.unshift(vertex1);
+                pushhead = true;
+                find = true;          
+                findidx = candidate[i];
+                candidate.splice(i, 1);
+                break;
+            }
+            else if(vertex2.equals(points[points.length - 1])){
+                points.push(vertex1);
+                find = true;
+                findidx = candidate[i];
+                candidate.splice(i, 1);
+                break;
             }
             else{
-                continueProcess = false;
+                continue;
             }
-
-            if(points[0].equals(points[points.length-1])){
-                continueProcess = false;
-                findclosedloop = true;
-            }
-            
-            
         }
 
-        if(findclosedloop){
-            for(let i = 0; i < findidxes.length; i++){
-                if(findidxes[i] !== undefined){
-                    let line = edgeObject.children[findidxes[i]];
-                    
-                    line.userData.threeMaterials = line.material; //原本的material暫存到userData.threeMaterials
-                    line.material = new THREE.LineBasicMaterial({ color: 0x8ec9f0 });
-                    l += calculateLineLength(line);
+        if(find){
+            if (arePointsCoplanar(points)) {
+                findidxes.push(findidx);
+            }
+            else{
+                if(pushhead){
+                    points.shift();
+                }
+                else{
+                    points.pop();
                 }
             }
         }
+        else{
+            continueProcess = false;
+        }
 
-        let dynamicTextElement = document.getElementById('length');
-        dynamicTextElement.innerHTML = 'Length : ' + l.toString();
+        if(points[0].equals(points[points.length-1])){
+            continueProcess = false;
+            findclosedloop = true;
+        }
+        
         
     }
 
+    if(findclosedloop)
+    {
+        for(let i = 0; i < findidxes.length; i++){
+            if(findidxes[i] !== undefined){
+                let line = sublines.children[findidxes[i]];
+                let singleLine = new THREE.Line(line.geometry, new THREE.LineBasicMaterial ({
+                    color: 0x8ec9f0
+                }));
 
-    // 初始化最小距离和最近的对象
-    // let minDistance = Infinity;
-    // let nearestObject = null;
-
-    // for (let i = 0; i < intersects.length; i++) {
-    //     let intersectedObject = intersects[i].object;
+                selectLineObject.add(singleLine);
+                l += computeLineLength(singleLine);
+            }
+        }
         
-    //     // 计算射线与对象的交点到射线起点的距离
-    //     let distance = intersects[i].distance;
-    
-    //     // 如果距离小于当前最小距离，则更新最小距离和最近的对象
-    //     if (distance < minDistance) {
-    //         minDistance = distance;
-    //         nearestObject = intersectedObject;
-    //     }
-    // }
-
-    // //在遍历完成后，nearestObject 就是与射线最接近的对象
-    // if (nearestObject !== null) {
-    //     // 这里执行针对最近对象的操作
-    //     let l = calculateLineLength(nearestObject);
-    //     let dynamicTextElement = document.getElementById('length');
-    //     dynamicTextElement.innerHTML = 'Length : ' + l.toString();
-    //     nearestObject.material.color.set(0xff0000);
-    // }
-    
+    }
+    return l;
 }
-
 
 function arePointsCoplanar(points) {
     if (points.length < 3) {
-        return true; // 如果只有两个点，它们总是共面的
+        return true; // 如果只有兩個點，它們總是共面的
     }
 
-    // 从第一个点开始，构建一个平面方程
+    // 從第一個點開始，建構一個平面方程
     let p0 = points[0];
     let normal = new THREE.Vector3().subVectors(points[1], p0).cross(new THREE.Vector3().subVectors(points[2], p0)).normalize();
     let constant = -normal.dot(p0);
 
-    // 检查其他点是否满足平面方程
+    // 檢查其他點是否滿足平面方程
     for (let i = 3; i < points.length; i++) {
         if (Math.abs(normal.dot(points[i]) + constant) > Number.EPSILON) {
-            return false; // 如果任何一个点不满足平面方程，则返回 false
+            return false; // 如果任何一點不滿足平面方程，則傳回 false
         }
     }
 
@@ -617,50 +567,186 @@ function arePointsCoplanar(points) {
 }
 
 
-function calculateLineLength(line) {
-    // 获取顶点位置的属性缓冲区
+function computeLineLength(line) {
+    
     let positions = line.geometry.attributes.position;
 
-    // 获取起始点和结束点的位置
-    let startX = positions.getX(0);
-    let startY = positions.getY(0);
-    let startZ = positions.getZ(0);
+    let vertex1 = new THREE.Vector3(positions.getX(0), positions.getY(0), positions.getZ(0));
+    let vertex2 = new THREE.Vector3(positions.getX(1), positions.getY(1), positions.getZ(1));
 
-    let endX = positions.getX(1);
-    let endY = positions.getY(1);
-    let endZ = positions.getZ(1);
-
-    // 计算起始点和结束点之间的距离
-    let length = Math.sqrt((endX - startX) ** 2 + (endY - startY) ** 2 + (endZ - startZ) ** 2);
-
-    return length;
+    return vertex1.distanceTo(vertex2);
 }
 
 
-// 根据场景中最大物体的尺寸和摄像机的视野范围来计算阈值
 function computeThreshold() {
 
-    // 定义相机的垂直视角（FOV）
-    let fov = camera.fov * (Math.PI / 180); // 将角度转换为弧度
+    let fov = camera.fov * (Math.PI / 180); // 將角度轉換為弧度
 
-    // 计算相机到屏幕的距离
     let cameraToScreenDistance = height / (2 * Math.tan(fov / 2));
 
-    // 计算画布的宽高比
     let aspectRatio = width / height;
 
-    // 计算视角在水平方向上的范围
     let fovHorizontal = 2 * Math.atan(Math.tan(fov / 2) * aspectRatio);
 
-    // 计算屏幕上一个像素对应到场景内的实际距离
     let pixelSize = 2 * Math.tan(fovHorizontal / (2 * width)) * cameraToScreenDistance;
-    
+   
     return 20*pixelSize;
 }
 
 
+//Dispose
+function Clear (rootObject){
+    DisposeThreeObjects (rootObject);
+    scene.remove (rootObject);
+    rootObject = null;
+}
 
-//以下是stp-web-viewer的寫法
+function Dispose(object){
+
+    if (object.material) {
+        if (Array.isArray(object.material)) {
+            object.material.forEach(material => {
+                material.dispose();
+            });
+        } else {
+            object.material.dispose();
+        }
+    }
+    object.userData = null;
+
+    if (object.geometry) {
+        object.geometry.dispose();
+    }
+    object = null;
+}
+
+// export function LoadfromJsonData(jsonData) {
+
+//     var modelViewDiv = document.getElementById('modelViewDiv');
+    
+//     const existingRendererElement = document.querySelector('canvas');
+//     if (existingRendererElement) {
+//         modelViewDiv.removeChild(existingRendererElement);
+//     }
+
+    
+//     scene = new THREE.Scene();
+    
+//     const directionalLight = new THREE.DirectionalLight(0xffffff, 1); 
+//     directionalLight.position.set(1, 1, 1);
+//     scene.add(directionalLight);
+
+//     const ambientLight = new THREE.AmbientLight(0x444444);
+//     scene.add(ambientLight);
+
+//     const backgroundLight = new THREE.HemisphereLight(0xffffff, 0x444444, 1);
+//     scene.add(backgroundLight);
+
+//     renderer = new THREE.WebGLRenderer({ antialias: true });
+//     renderer.setSize(width, height);
+//     renderer.setClearColor(0x000000);
+
+//     if(modelViewDiv)
+//         modelViewDiv.appendChild(renderer.domElement);
+
+//     mainObject = new THREE.Object3D();
+
+    
+//     LoadGeometry(mainObject, jsonData);
+
+
+
+//     scene.add(mainObject);
+
+    
+//     const bbox = new THREE.Box3().setFromObject(mainObject);
+
+    
+//     const center = new THREE.Vector3();
+//     bbox.getCenter(center);
+
+    
+//     const size = new THREE.Vector3();
+//     bbox.getSize(size);
+
+    
+//     const maxDimension = Math.max(size.x, size.y, size.z);
+
+    
+//     const distance = maxDimension * 2;
+
+    
+//     const farValue = distance + maxDimension;
+
+//     camera = new THREE.PerspectiveCamera(75, width / height, 0.1, farValue);
+    
+//     camera.position.set(center.x, center.y, center.z + maxDimension);
+//     camera.lookAt(center);
+
+
+//     const controls = new OrbitControls(camera, renderer.domElement);
+//     controls.enableDamping = true;
+//     controls.dampingFactor = 0.05;
+//     controls.enableZoom = true;
+//     controls.enableRotate = true;
+//     controls.enablePan = true;
+//     controls.screenSpacePanning = false; 
+
+    
+//     function animate() {
+//         requestAnimationFrame(animate);
+//         controls.update();
+//         renderer.render(scene, camera);
+//     }
+//     animate();
+// }
+
+function areLinesEqual(line1, line2) {
+    let result = false;
+    let positions1 = line1.geometry.attributes.position;
+    let positions2 = line2.geometry.attributes.position;
+
+    let vertex1 = new THREE.Vector3(positions1.getX(0), positions1.getY(0), positions1.getZ(0));
+    let vertex2 = new THREE.Vector3(positions1.getX(1), positions1.getY(1), positions1.getZ(1));
+
+    let vertex3 = new THREE.Vector3(positions2.getX(0), positions2.getY(0), positions2.getZ(0));
+    let vertex4 = new THREE.Vector3(positions2.getX(1), positions2.getY(1), positions2.getZ(1));
+
+    if((vertex1.equals(vertex3) && vertex2.equals(vertex4)) || (vertex1.equals(vertex4) && vertex2.equals(vertex2))){
+        result = true;
+    }
+
+    return result;
+}
+
+function isCircle(points, threshold) {
+    let center = new THREE.Vector3();
+    for (let i = 0; i < points.length; i++) {
+        center.add(points[i]);
+    }
+    center.divideScalar(points.length);
+
+    let distances = [];
+    for (let i = 0; i < points.length; i++) {
+        let distance = points[i].distanceTo(center);
+        distances.push(distance);
+    }
+
+    for (let i = 1; i < distances.length; i++) {
+        if (Math.abs(distances[i] - distances[0]) > threshold) {
+            return { isCircle: false, radius: null };
+        }
+    }
+
+    let sum = distances.reduce((acc, cur) => acc + cur, 0);
+    let averageDistance = sum / distances.length;
+
+    return { isCircle: true, radius: averageDistance };
+}
+
+
+
+//stp-web-viewer
 
 function LoadGeometry(targetObject, jsonData) {
     prepareGroup(targetObject, jsonData);

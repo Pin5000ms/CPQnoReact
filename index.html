@@ -19,33 +19,33 @@
 
     <title>3D Viewer</title>
     <style>
-        /* 這裡可以添加 CSS 樣式 */
+        
         body {
             font-family: Arial, sans-serif;
         }
 
         #treeViewDiv {
             width: 400px;
-            height: 500px; /* 设置高度，仅作示例 */
+            height: 500px; 
             float: left;
             box-sizing: border-box;
-            border: 1px solid #ccc; /* 边框样式，仅作示例 */
+            border: 1px solid #ccc; 
         }
 
         #modelViewDiv {
             width: 700px;
-            height: 500px; /* 设置高度，仅作示例 */
+            height: 500px;
             float: left;
             box-sizing: border-box;
-            border: 1px solid #ccc; /* 边框样式，仅作示例 */
+            border: 1px solid #ccc;
         }
 
         #propertyDiv {
             width: 300px;
-            height: 500px; /* 设置高度，仅作示例 */
+            height: 500px;
             float: left;
             box-sizing: border-box;
-            border: 1px solid #ccc; /* 边框样式，仅作示例 */
+            border: 1px solid #ccc;
         }
 
         .tree{
@@ -146,11 +146,18 @@
     </div>
 
     <div id="propertyDiv">
+        <form id="myForm" style="width: 300px;">
+            <input type="radio" id="option1" name="options" value="line">
+            <label for="option1">Select Line</label><br>
+
+            <input type="radio" id="option2" name="options" value="face">
+            <label for="option2">Select Face</label><br>
+        </form>
         <p id="length"></p>
+        <p id="area"></p>
     </div>
 
 
-    <!-- <script type='text/javascript' src="testworker.js"></script> -->
 
 </body>
 </html>

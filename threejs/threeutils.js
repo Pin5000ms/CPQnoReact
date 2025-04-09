@@ -5,7 +5,9 @@ import { RGBColorFromFloatComponents } from '../model/color.js';
 import { MaterialType } from '../model/material.js';
 import { Mesh } from '../model/mesh.js';
 import { Triangle } from '../model/triangle.js';
+import { BrepFace } from '../model/brepface.js';
 import * as THREE from '../jsm/three.module.js'
+
 
 // Some mobile devices say that they support mediump, but in reality they don't. At the end
 // all materials rendered as black. This hack renders a single plane with red material and
@@ -205,6 +207,12 @@ export function ConvertThreeGeometryToMesh (threeGeometry, materialIndex, colorC
             triangle.SetMaterial (materialIndex);
         }
         mesh.AddTriangle (triangle);
+    }
+
+    for (let brepface_occt of threeGeometry.brep_faces) 
+    {
+        let brepface = new BrepFace(brepface_occt.first, brepface_occt.last);
+        mesh.AddBrepFace(brepface);
     }
 
     return mesh;

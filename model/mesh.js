@@ -11,6 +11,8 @@ export class Mesh extends ModelObject3D
         this.uvs = [];
         this.lines = [];
         this.triangles = [];
+
+        this.brepfaces = []
     }
 
     VertexCount ()
@@ -50,6 +52,11 @@ export class Mesh extends ModelObject3D
     TriangleCount ()
     {
         return this.triangles.length;
+    }
+
+    BrepFaceCount ()
+    {
+        return this.brepfaces.length;
     }
 
     AddVertex (vertex)
@@ -136,6 +143,17 @@ export class Mesh extends ModelObject3D
     GetTriangle (index)
     {
         return this.triangles[index];
+    }
+
+    AddBrepFace (brepface)
+    {
+        this.brepfaces.push (brepface);
+        return this.brepfaces.length - 1;
+    }
+
+    GetBrepFace (index)
+    {
+        return this.brepfaces[index];
     }
 
     EnumerateVertices (onVertex)
